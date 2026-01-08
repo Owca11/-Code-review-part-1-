@@ -4,77 +4,121 @@
 # 3/ The user should be able to override the status with a manually set value.
 # 4/ The system should support displaying the status (if enabled) and logging it to a file (if enabled).
 
-
-tmp = None
-
 last_values = {}
-
 HR_MIN = 40
 HR_MAX = 180
 SPO2_MIN = 0
 SPO2_MAX = 100
-
-debug_mode = False
+DEBUG_MODE = False
 
 
 def normalize_hr(hr):
-    return (hr - 40) / (180 - 40)
+    """
+    Normalizes heart rate to a 0–1 scale based on physiological limits.
+
+    Parameters:
+        hr (int/float): Heart rate in beats per minute.
+
+    Returns:
+        float: Normalized value between 0 and 1.
+
+    Raises:
+        ValueError: If HR is outside reasonable bounds.
+    """
+    if hr < HR_MIN or hr > HR_MAX:
+        raise ValueError(f"Heart rate {hr} is outside normal range ({HR_MIN}-{HR_MAX})")
+    return (hr - HR_MIN) / (HR_MAX - HR_MIN)
+
 
 def normalize_spo2(spo2):
-    try:
-        return spo2 / 100
-    except:
-        return 0.1234
+    """
+    Normalizes SpO2 to a 0–1 scale (percentage to decimal).
+
+    Parameters:
+        spo2 (int/float): Oxygen saturation percentage (0–100).
+
+    Returns:
+        float: Normalized value between 0 and 1.
+
+    Raises:
+        ValueError: If SpO2 is outside 0–100.
+    """
+    if spo2 < 0 or spo2 > 100:
+        raise ValueError(f"SpO2 {spo2} is outside valid range (0-100%)")
+    return spo2 / 100.0
 
 
-def analyze(hr, spo2, log=True, override_status=None, verbose=0):
-    global tmp, last_values
+def analyze_vitals(hr, spo2, log=True, override_status=None, verbose=False):
+    """
+    Analyzes heart rate and SpO2 to determine patient status.
+
+    Parameters:
+        hr (int/float): Heart rate.
+        spo2 (int/float): Oxygen saturation percentage.
+        log (bool): Whether to log results to a file.
+        override_status (str): Manually set status (optional).
+        verbose (bool): Whether to print detailed messages.
+
+    Returns:
+        str: Status message.
+
+    Raises:
+        ValueError: If inputs are invalid.
+    """
+    global last_values
+
+    # Input validation
+    if hr <= 0 or spo2 < 0:
+        raise ValueError("HR must be positive and SpO2 cannot be negative")
 
     last_values["hr"] = hr
     last_values["spo2"] = spo2
-    last_values["flag"] = force
 
     if verbose:
-        print("Analyzing vital data:", hr, spo2, "force:", force)
+        print(f"Analyzing vital data: HR={hr}, SpO2={spo2}")
 
-    n1 = normalize_hr(hr)
-    n2 = normalize_spo2(spo2)
+    # Normalize
+    norm_hr = normalize_hr(hr)
+    norm_spo2 = normalize_spo2(spo2)
 
+    # Determine status
     if override_status:
         status = override_status
     else:
-        if n1 > 0.7 and n2 < 0.3:
+        if norm_hr > 0.7 and norm_spo2 < 0.3:
             status = "CRITICAL"
-        elif n1 > 0.4:
-            if spo2 < 88 or hr > 200:
-                status = "SEVERE?"
+        elif norm_hr > 0.4:
+            if spo2 < 88 or hr > HR_MAX:
+                status = "SEVERE"
             else:
                 status = "WARNING"
         else:
             status = "OK"
 
-    tmp = f"Last status: {status}" + (" (DBG)" if debug_mode else "")
+    # Update global last status string
+    global tmp
+    tmp = f"Last status: {status}" + (" (DEBUG)" if DEBUG_MODE else "")
 
+    # Log to file if requested
     if log:
         try:
             with open("vitals_log.txt", "a") as f:
-                f.write(
-                    f"HR={hr}, SpO2={spo2}, N1={n1:.2f}, N2={n2:.2f}, STATUS={status}\n"
-                )
-        except:
-            pass
+                f.write(f"HR={hr}, SpO2={spo2}, N_HR={norm_hr:.2f}, N_SpO2={norm_spo2:.2f}, STATUS={status}\n")
+        except IOError as e:
+            print(f"Failed to write log: {e}")
 
-    print("Status is:", status)
+    # Display status if verbose
+    if verbose:
+        print(f"Status is: {status}")
 
     return tmp
 
 
 if __name__ == "__main__":
-    hr = 999
-    spo2 = -3
+    # Example with valid data
+    hr_example = 85
+    spo2_example = 97
 
-    result = analyze(hr, spo2, True, None, 3, True)
-
-    print("Finished analysis, tmp:", tmp)
+    result = analyze_vitals(hr_example, spo2_example, log=True, verbose=True)
+    print("Analysis result:", result)
     print("Last values:", last_values)
-

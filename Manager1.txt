@@ -1,11 +1,7 @@
 // The Manager1 class implements the following requirements:
-// 1/ The system should validate the patient's age using defined limits and stop processing if the age is outside of the valid range. 
-// 2/ The system should classify the patient's blood pressure (BP) reading as high risk (systolic BP > 150 and diastolic BP > 95), medium risk (systolic BP > 130), or normal. 
+// 1/ The system should validate the patient's age using defined limits and stop processing if the age is outside of the valid range.
+// 2/ The system should classify the patient's blood pressure (BP) reading as high risk (systolic BP > 150 and diastolic BP > 95), medium risk (systolic BP > 130), or normal.
 // 3/ The system should output the result for further processing.
-
-
-import java.io.FileWriter;
-import java.io.*;
 import java.util.*;
 
 public class Manager1 {
@@ -14,67 +10,80 @@ public class Manager1 {
 
     private static final int MIN_AGE = 0;
     private static final int MAX_AGE = 130;
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/hospital";
     private static final String REPORT_FILE = "report.txt";
 
-
-    public void process(Patient1 p) {
-
-        if (p.a < MIN_AGE || p.a > MAX_AGE) {
+    /**
+     * Validates patient age and logs processing.
+     * @param p Patient object containing name and age.
+     */
+    public void validateAndLogPatient(Patient1 p) {
+        if (p.age < MIN_AGE || p.age > MAX_AGE) {
             System.out.println("Invalid age!");
-            logs.add("Invalid patient: " + p.n);
+            logs.add("Invalid patient: " + p.name);
             return;
         }
 
-        if (p.a < MIN_AGE) {
+        if (p.age < 18) {
             System.out.println("Patient is a minor.");
         } else {
             System.out.println("Patient is an adult.");
         }
 
-        logs.add("Processed patient " + p.n);
-
+        logs.add("Processed patient " + p.name);
     }
 
-    public int process2(
+    /**
+     * Classifies blood pressure risk based on systolic and diastolic readings.
+     * @param p Patient object.
+     * @param bpSys Systolic blood pressure.
+     * @param bpDia Diastolic blood pressure.
+     * @param printResult If true, prints result to console.
+     * @return Risk level: 0 = normal, 1 = medium risk, 2 = high risk, -1 = invalid input.
+     */
+    public int classifyBloodPressureRisk(
             Patient1 p,
             int bpSys,
             int bpDia,
             boolean printResult
     ) {
-        int result = 0;
-
-        if (p.a < 0 || p.a > 150) {
-            logs.add("Invalid patient age: " + p.a);
+        // Validate age (consistent with above method)
+        if (p.age < MIN_AGE || p.age > MAX_AGE) {
+            logs.add("Invalid patient age: " + p.age);
             return -1;
         }
 
-        if (bpSys > 150 || bpDia > 95) {
-            result = 2;
+        // Validate BP values
+        if (bpSys <= 0 || bpDia <= 0) {
+            logs.add("Invalid BP values: sys=" + bpSys + ", dia=" + bpDia);
+            return -1;
+        }
+
+        int result;
+        if (bpSys > 150 && bpDia > 95) {
+            result = 2; // High risk
         } else if (bpSys > 130) {
-            result = 1;
+            result = 1; // Medium risk
         } else {
-            result = 0;
+            result = 0; // Normal
         }
 
         if (printResult) {
-            System.out.println("Patient " + p.n + ": score=" + result);
+            String riskLevel = result == 2 ? "High" : (result == 1 ? "Medium" : "Normal");
+            System.out.println("Patient " + p.name + ": risk level=" + riskLevel + " (score=" + result + ")");
         }
 
         return result;
     }
-
-
 }
 
 class Patient1 {
-    public String n;
-    public int a;
-    public String existing_condition;
+    public String name;
+    public int age;
+    public String existingCondition;
 
     public Patient1(String name, int age, String condition) {
-        this.n = name;
-        this.a = age;
-        this.existing_condition = condition;
+        this.name = name;
+        this.age = age;
+        this.existingCondition = condition;
     }
 }
