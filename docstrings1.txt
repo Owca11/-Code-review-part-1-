@@ -1,0 +1,42 @@
+def calculate_medication_dose(weight_kg, age_years, drug_code, emergency=False):
+    """
+    Calculates medication dose based on weight and age.
+
+    Parameters:
+        weight_kg (float): Patient body mass in kilograms.
+        age_years (int): Patient age in years.
+        drug_code (str): Code of the drug: "DRUG_A", "DRUG_B", "DRUG_C".
+        emergency (bool): Optional flag for emergency dose adjustment.
+
+    Returns:
+        float: Dose in milligrams.
+
+    Notes:
+        - This function does not check for allergies!
+        - Based on hospital guidelines 2021 (TODO: update to 2025).
+    """
+    if weight_kg <= 0:
+        raise ValueError("Weight must be positive")
+    if age_years < 0:
+        raise ValueError("Age cannot be negative")
+
+    drug_mg_per_kg = {
+        "DRUG_A": 2.0,
+        "DRUG_B": 0.5,
+        "DRUG_C": 1.2
+    }
+
+    if drug_code not in drug_mg_per_kg:
+        raise ValueError(f"Unknown drug code: {drug_code}")
+
+    base_dose_mg = weight_kg * drug_mg_per_kg[drug_code]
+
+    # Age-based adjustment
+    if age_years < 12:
+        base_dose_mg *= 0.8  # Reduce dose for children
+
+    # Emergency dose adjustment (if required in future)
+    if emergency:
+        base_dose_mg *= 1.5  # Example emergency multiplier
+
+    return round(base_dose_mg, 2)
